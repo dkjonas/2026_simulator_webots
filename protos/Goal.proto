@@ -1,0 +1,44 @@
+#VRML_SIM R2025a utf8
+# template language: javascript
+
+PROTO Goal [
+  field SFVec3f    translation       0 0 0
+  field SFRotation rotation          0 0 1 0
+  field SFColor    frameColor         0.425 0.425 0.425
+  field SFString   name              "Goal"
+]
+{
+  Solid {
+    translation IS translation
+    rotation IS rotation
+    name IS name
+    children [
+      Shape {
+        appearance PBRAppearance {
+          baseColor IS frameColor
+          roughness 1
+          metalness 0
+        }
+        geometry Mesh {
+          url [
+            "Goal_air.stl"
+          ]
+          materialIndex -1
+        }
+      }
+      Shape {
+        appearance PBRAppearance {
+          baseColor IS frameColor
+          roughness 1
+          metalness 0
+        }
+        geometry Mesh {
+          url [
+            "Goal_floor.stl"
+          ]
+          materialIndex -1
+        }
+      } 
+    ]
+  }
+}

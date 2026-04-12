@@ -1,0 +1,195 @@
+#VRML_SIM R2025a utf8
+# template language: javascript
+
+PROTO Gate [
+  field SFVec3f    translation       0 0 0
+  field SFRotation rotation          0 0 1 0
+  field SFColor    color             0.015 0.58 0.27
+  field SFString   name              "Gate"
+  field SFBool     has_foot         TRUE
+  field SFBool     has_door         FALSE
+  field SFNode     physics          NULL
+]
+{
+%<
+  const hasFoot = fields.has_foot.value;
+  const hasDoor = fields.has_door.value;
+>%
+Solid {
+  translation IS translation
+  rotation IS rotation
+  children [
+    Shape {
+      appearance DEF GateAppearance PBRAppearance {
+        baseColor IS color
+        roughness 1
+        metalness 0
+      }
+      geometry Mesh {
+        url [
+          "Gate_frame.stl"
+        ]
+        materialIndex -1
+      }
+    }
+    %< if (hasFoot) { >%
+    Shape {
+      appearance USE GateAppearance
+      geometry Mesh {
+        url [
+          "Gate_foot.stl"
+        ]
+        materialIndex -1
+      }
+    }
+    Pose {
+      translation 0.472 0 0
+      rotation 0 0 1 3.14159
+      children [
+        Shape {
+          appearance USE GateAppearance
+          geometry Mesh {
+            url [
+              "Gate_foot.stl"
+            ]
+          materialIndex -1
+          }
+        }
+      ]
+    }
+    %< } >%
+       %< if (hasDoor) { >%
+         HingeJoint {
+          jointParameters HingeJointParameters {
+            axis 0 0 1
+          }
+          device [
+            RotationalMotor {
+              name %<= '"' + fields.name.value + '_motor0"' >%
+            }
+          ]
+          endPoint Solid {
+            name "solidA"
+            children [
+              Shape {
+                appearance USE GateAppearance
+                geometry Mesh {
+                  url [
+                    "Gate_door.stl"
+                  ]
+                }
+              }
+            ]
+            boundingObject Pose {
+              translation 0.125 0 0.135
+              children [
+                Box {
+                  size 0.21 0.005 0.22
+                }
+              ]
+            }
+          }
+        }
+        HingeJoint {
+          jointParameters HingeJointParameters {
+            axis 0 0 1
+            anchor 0.472 0 0
+          }
+          device [
+            RotationalMotor {
+              name %<= '"' + fields.name.value + '_motor1"' >%
+            }
+          ]
+          endPoint Solid {
+            name "solidB"
+            translation 0.472 0 0
+            rotation 0 0 0.9999999999999999 3.14
+            children [
+              Shape {
+                appearance USE GateAppearance
+                geometry Mesh {
+                  url [
+                    "Gate_door.stl"
+                  ]
+                }
+              }
+            ]
+            boundingObject Pose {
+              translation 0.125 0 0.135
+              children [
+                Box {
+                  size 0.21 0.005 0.22
+                }
+              ]
+            }
+          }
+        }
+    %< } >%
+  ]
+  name IS name
+  physics IS physics
+  boundingObject Group {
+    children [
+      Pose {
+        translation 0 0 0.2
+        children [
+          Cylinder {
+            height 0.4
+            radius 0.011
+            subdivision 16
+          }
+        ]
+      }
+      Pose {
+        translation 0.472 0 0.2
+        children [
+          Cylinder {
+            height 0.4
+            radius 0.011
+            subdivision 16
+          }
+        ]
+      }
+      %< if (hasFoot) { >%
+        Pose {
+          translation -0.022478 0.049053 0.0125
+          rotation 0 0 1 1.95130
+          children [
+            Box {
+              size 0.107785 0.005 0.025
+            }
+          ]
+        }
+        Pose {
+          translation -0.022478 -0.049053 0.0125
+          rotation 0 0 1 -1.95130
+          children [
+            Box {
+              size 0.107785 0.005 0.025
+            }
+          ]
+        }
+        Pose {
+          translation 0.494478 0.049053 0.0125
+          rotation 0 0 1 1.19029
+          children [
+            Box {
+              size 0.107785 0.005 0.025
+            }
+          ]
+        }
+        Pose {
+          translation 0.494478 -0.049053 0.0125
+          rotation 0 0 1 -1.190289
+          children [
+            Box {
+              size 0.107785 0.005 0.025
+            }
+          ]
+        }
+
+      %< } >%      
+    ]
+  }
+}
+}

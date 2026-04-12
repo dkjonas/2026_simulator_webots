@@ -1,0 +1,116 @@
+#VRML_SIM R2025a utf8
+# template language: javascript
+
+EXTERNPROTO "Gate.proto"
+
+PROTO Seesaw [
+  field SFVec3f    translation       0 0 0
+  field SFRotation rotation          0 0 1 0
+  field SFColor    baseColor         0.425 0.425 0.425
+  field SFColor    line1Color        0 0 0
+  field SFColor    line2Color        1 1 1
+  field SFString   name              "Seesaw"
+  field SFFloat    position          0.1974
+]
+{
+Solid {
+  translation IS translation
+  rotation IS rotation
+  children [
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        position IS position
+        axis 0 1 0
+        anchor 0 0 0.15
+        minStop -0.1974
+        maxStop 0.1974
+      }
+      endPoint Solid {
+        translation 0 0 0.15
+        rotation 0 1 0 0.1974
+        children [
+          Shape {
+            appearance PBRAppearance {
+              baseColor IS baseColor
+              roughness 1
+              metalness 0
+            }
+            geometry Mesh {
+              url [
+                "Seesaw_surface.stl"
+              ]
+            }
+          }
+          Shape {
+            appearance PBRAppearance {
+              baseColor IS line1Color
+              roughness 1
+              metalness 0
+            }
+            geometry Mesh {
+              url [
+                "Seesaw_line.stl"
+              ]
+            }
+          }
+          Pose {
+            rotation 0 0 1 3.14159
+            children [
+              Shape {
+                appearance PBRAppearance {
+                  baseColor IS line2Color
+                  roughness 1
+                  metalness 0
+                }
+                geometry Mesh {
+                  url [
+                    "Seesaw_line.stl"
+                  ]
+                }
+              }
+            ]
+          } 
+          Gate {
+            translation 0 -0.24 0.016
+            rotation 0 0 1 1.5708
+	    physics Physics {
+            }
+          }         
+        ]
+        boundingObject Pose {
+          translation 0 0 0.008
+          children [
+            Box {
+              size 1.5 0.6 0.016
+            }
+          ]
+        }
+        physics Physics {
+        }
+        linearVelocity 3.7118742805189404e-15 -4.3192275118429154e-09 -7.029920352514028e-11
+        angularVelocity 4.5868501973581797e-07 4.676494486162708e-13 1.503418571855595e-17
+      }
+    }
+    DEF seesaw_foot Pose {
+      rotation 0 1 0 0.7853
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 0.423529 0.423529 0.423529
+            metalness 0
+          }
+          geometry Box {
+            size 0.2121 0.6 0.2121
+          }
+        }
+      ]
+    }
+  ]
+  name IS name
+  boundingObject USE seesaw_foot
+}
+}
+
+
+
+

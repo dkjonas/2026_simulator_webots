@@ -1,0 +1,59 @@
+#VRML_SIM R2025a utf8
+# template language: javascript
+
+PROTO Button [
+  field SFVec3f    translation       0 0 0
+  field SFRotation rotation          0 0 1 0
+  field SFColor    color             0.7 0.7 0.7
+  field SFString   name              "Button"
+]
+{
+Solid {
+  translation IS translation
+  rotation IS rotation
+  children [
+    LED {
+      name %<= '"' + fields.name.value + '_led"' >%
+      color []
+      gradual TRUE
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor IS color
+            metalness 0
+          }
+          geometry Mesh {
+            url [
+              "Button_front.stl"
+            ]
+          }
+        }
+      ]
+    }
+    TouchSensor {
+      name %<= '"' + fields.name.value + '_touch"' >%
+      boundingObject Pose {
+        translation 0 -0.02 0
+        children [
+          Box {
+            size 0.1 0.01 0.1
+          }
+        ]
+      }
+    }
+
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 0 0
+        metalness 0
+      }
+      geometry Mesh {
+        url [
+          "Button_back.stl"
+        ]
+      }
+    }
+  ]
+  name IS name
+}
+}

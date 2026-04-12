@@ -1,0 +1,58 @@
+#VRML_SIM R2025a utf8
+# template language: javascript
+
+PROTO Podium [
+  field SFVec3f    translation       0 0 0
+  field SFRotation rotation          0 0 1 0
+  field SFColor    baseColor         0.425 0.425 0.425
+  field SFColor    lineColor         0 0 0
+  field SFString   name              "Podium"
+]
+{
+  Solid {
+    translation IS translation
+    rotation IS rotation
+    name IS name
+    children [
+      Shape {
+        appearance PBRAppearance {
+          baseColor IS baseColor
+          roughness 1
+          metalness 0
+        }
+        geometry Mesh {
+          url [
+            "Podium_base.stl"
+          ]
+          materialIndex -1
+        }
+      }   
+      Shape {
+        appearance PBRAppearance {
+          baseColor IS lineColor
+          roughness 1
+          metalness 0
+        }
+        geometry Mesh {
+          url [
+            "Podium_line.stl"
+          ]
+          materialIndex -1
+        }
+      }   
+    ]
+
+    boundingObject Group {
+      children [
+        Pose {
+          translation 0 0 0.05
+          children [
+            Box {
+              size 0.6 0.6 0.1
+            }
+          ]
+        }    
+      ]
+    }
+  }
+}

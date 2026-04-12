@@ -1,0 +1,103 @@
+#VRML_SIM R2025a utf8
+# template language: javascript
+
+PROTO Aruco [
+  field SFVec3f    translation       0 0 0
+  field SFRotation rotation          0 0 1 0
+  field SFString   name              "Aruco"
+  field SFFloat    markersize        0.05
+  field SFFloat    depth             0.01
+  field SFInt32    id                10
+]
+{
+%<
+  const pixelsize = fields.markersize.value / 6;
+  const w = pixelsize * 8 / 2;
+  const d = fields.depth.value/2;
+  const id = fields.id.value;
+>%
+Solid {
+  translation IS translation
+  rotation IS rotation
+  name IS name
+  children [
+
+    Shape {
+      appearance PBRAppearance {
+        baseColorMap ImageTexture {
+          url ["aruco_4x4-%<= id >%.png"]
+          filtering 0
+        }
+        metalness 0
+      }
+      geometry IndexedFaceSet {
+        coord Coordinate {
+          point [
+            %<= -w >% %<= -w >% %<=  d >%
+            %<=  w >% %<= -w >% %<=  d >%
+            %<=  w >% %<=  w >% %<=  d >%
+            %<= -w >% %<=  w >% %<=  d >%
+            %<= -w >% %<= -w >% %<= -d >%
+            %<=  w >% %<= -w >% %<= -d >%
+            %<=  w >% %<=  w >% %<= -d >%
+            %<= -w >% %<=  w >% %<= -d >%
+          ]
+        }
+
+        coordIndex [
+          0 1 2 3 -1
+        ]
+
+        texCoord TextureCoordinate {
+          point [
+            0 0
+            1 0
+            1 1
+            0 1
+          ]
+        }
+
+        texCoordIndex [
+          0 1 2 3 -1
+        ]
+      }
+    }
+
+    Shape {
+      appearance PBRAppearance {
+        baseColor 1 1 1
+        metalness 0
+      }
+
+      geometry IndexedFaceSet {
+        coord Coordinate {
+          point [
+            %<= -w >% %<= -w >% %<=  d >%
+            %<=  w >% %<= -w >% %<=  d >%
+            %<=  w >% %<=  w >% %<=  d >%
+            %<= -w >% %<=  w >% %<=  d >%
+            %<= -w >% %<= -w >% %<= -d >%
+            %<=  w >% %<= -w >% %<= -d >%
+            %<=  w >% %<=  w >% %<= -d >%
+            %<= -w >% %<=  w >% %<= -d >%
+          ]
+        }
+
+        coordIndex [
+          7 6 5 4 -1   # back
+          0 3 7 4 -1    
+          1 5 6 2 -1   # right
+          3 2 6 7 -1   # top
+          0 4 5 1 -1   # bottom
+        ]
+      }
+    }
+
+  ]
+
+  boundingObject Box {
+    size %<= w * 2 >% %<= w * 2 >% %<= d * 2 >% 
+  }
+
+}
+}
