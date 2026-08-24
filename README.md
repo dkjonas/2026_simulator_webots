@@ -14,6 +14,8 @@ This repository contains a Webots simulation of the **RoboCup.dk 2026** competit
 5. The simulation includes a simple robot that can be controlled using the keyboard arrow keys. Speed can be set with keys **`1`** to **`9`**.
    It also has a basic line-following algorithm that can be enabled by pressing the **`L`** key. You may have to click on the 3d view before the keyboard controls are working.
 
+Note that you need to have Python installed to run the simulation.
+
 The robot is controlled by the `controllers/boebot_controller/boebot_controller.py` Python script. You can use this as a starting point for your own robot, or simply to learn how to use Webots. A simple improvement is to make the robot able to follow the black line.
 
 ## Track Rules and Setup
