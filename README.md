@@ -8,12 +8,10 @@ This repository contains a Webots simulation of the **RoboCup.dk 2026** competit
 
 1. Download and install Webots from https://cyberbotics.com/.  
    The simulation was developed using **Webots R2025a**, but newer versions should also work.
-2. Open the file `worlds/robocup.dk_2026.wbt` in Webots.
-3. Start the simulation by pressing the **Play** button.
-4. The simulation includes a simple robot that can be controlled using the keyboard.  
-   It also has a basic line-following algorithm that can be enabled by pressing the **`L`** key.
+2. Build `WildWilly.Webots.Controller` from the WildWillyCore solution. Its post-build step copies the controller executable and dependencies to `controllers/wild_willy_r5/`.
+3. Open `worlds/robocup.dk_2026.wbt` in Webots and press **Play**. The controller requires the .NET 10 runtime.
 
-The robot is controlled by the `controllers/boebot_controller/boebot_controller.py` Python script. You can use this as a starting point for your own robot, or simply to learn how to use Webots. A simple improvement to try is making the robot better at following the black line.
+The world uses the `WildWillyR5` robot and its `wild_willy_r5` C# controller. The PROTO's robot frame is X forward, Y left, Z up; its original Y-forward CAD and devices are rotated inside the PROTO, without modifying the DAE files. The old `controllers/boebot_controller/` example remains in the repository but is not selected by the world.
 
 ## Track Rules and Setup
 

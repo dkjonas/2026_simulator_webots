@@ -1,0 +1,375 @@
+#VRML_SIM R2025a utf8
+
+PROTO WildWillyR5 [
+  field SFVec3f    translation       0 0 0
+  field SFRotation rotation          0 0 1 0
+  field SFString   name              "robotWildWillyR5"
+  field SFString   controller        "wild_willy_r5"
+]
+{
+Robot {
+  translation IS translation
+  rotation IS rotation
+  supervisor TRUE
+  children [
+    # Internal positions and joint axes use X-forward, Y-left, Z-up (FLU).
+    # The imported DAE meshes retain their original coordinates and are rotated locally.
+    Pose {
+      translation 0.085 -0.033 0.043
+      children [
+        HingeJoint {
+          jointParameters HingeJointParameters {
+            position 0
+            axis 0 1 0
+          }
+          device [
+            RotationalMotor {
+              name "arm_motor_angle"
+              maxPosition 3.15
+              minPosition -0.01
+            }
+          ]
+          endPoint Solid {
+            rotation 0 0 1 1.57
+            children [
+              Pose {
+                rotation 0 0 1 -1.5707963267948966
+                children [
+                  CadShape {
+                    url [
+                      "WildWillyR5_arm.dae"
+                    ]
+                  }
+                ]
+              }
+            ]
+            name "arm"
+            boundingObject Pose {
+              translation 0.034 0.12 0.03
+              children [
+                Box {
+                  size 0.1 0.05 0.05
+                }
+              ]
+            }
+            physics Physics {
+              density -1
+              mass 0.1
+            }
+          }
+        }
+      ]
+    }
+    InertialUnit {
+      # Preserve the IMU's original axis readings for the controller.
+      rotation 0 0 1 -1.5707963267948966
+      name "inertialunit_imu"
+    }
+    Pose {
+      translation 0.101 0 0.094
+      # Original mount used 1.57 rad, slightly less than a quarter-turn.
+      rotation 0 0 1 -0.0007963267948966
+      children [
+        Camera {
+          rotation 0 1 0 0.2268
+          name "camera_rgb"
+          fieldOfView 1.7336
+          width 768
+          height 432
+          antiAliasing TRUE
+	  lens DEF camera_lens Lens {
+            center  0.4942 0.4804
+            radialCoefficients -0.075645 0.153474
+            tangentialCoefficients 0.000742 -0.00054606
+          } 
+        }
+        RangeFinder {
+          translation 0 0 -0.04
+          name "rangefinder_tof"
+          fieldOfView 1.12228
+          width 240
+          height 180
+          minRange 0.05
+          maxRange 4
+          noise 0.01
+        }
+      ]
+    }
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        position -1.739223132186229e-09
+        axis 0 0 -1
+        anchor 0.0586 0.1015 0
+      }
+      device [
+        PositionSensor {
+          name "swerve_position_angle_0"
+        }
+        RotationalMotor {
+          name "swerve_motor_angle_0"
+        }
+      ]
+      endPoint Solid {
+        translation 0.0586 0.1015 0.014999999999999507
+        rotation -1.0018367559038278e-08 -2.583278973793971e-08 0.9999999999999998 1.5700000094377657
+        children [
+          HingeJoint {
+            jointParameters HingeJointParameters {
+              position -47797.21705192089
+              axis 1 0 0
+            }
+            device [
+              PositionSensor {
+                name "swerve_position_angular_distance_0"
+              }
+              RotationalMotor {
+                name "swerve_motor_angular_speed_0"
+                maxVelocity 30
+              }
+            ]
+            endPoint Solid {
+              translation 3.320508945065105e-05 -0.00025607266816267117 -0.00011546762888537386
+              rotation 0.44171987787335426 0.7807164975702459 -0.4420014704875963 4.466012266972581
+              children [
+                Solid {
+                  children [
+                    Shape {
+                      appearance PBRAppearance {
+                        baseColor 0 0 0
+                      }
+                      geometry DEF wheel_tire Cylinder {
+                        height 0.029
+                        radius 0.0375
+                      }
+                    }
+                  ]
+                }
+              ]
+              name "wheel_0_tire"
+              boundingObject USE wheel_tire
+              physics DEF wheel_tire_physics Physics {
+              }
+            }
+          }
+        ]
+        name "wheel_0_hub"
+        boundingObject Cylinder {
+          height 0.02
+          radius 0.052
+        }
+        physics DEF wheel_hub_physics Physics {
+        }
+      }
+    }
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        position -1.668626528086377e-10
+        axis 0 0 -1
+        anchor 0.0586 -0.1015 0
+      }
+      device [
+        PositionSensor {
+          name "swerve_position_angle_1"
+        }
+        RotationalMotor {
+          name "swerve_motor_angle_1"
+        }
+      ]
+      endPoint Solid {
+        translation 0.0586 -0.1015 0.01569999999999787
+        rotation -8.684351847421306e-10 1.9692735636565583e-08 0.9999999999999999 1.5700000062986448
+        children [
+          HingeJoint {
+            jointParameters HingeJointParameters {
+              position -47400.77821226838
+              axis 1 0 0
+            }
+            device [
+              PositionSensor {
+                name "swerve_position_angular_distance_1"
+              }
+              RotationalMotor {
+                name "swerve_motor_angular_speed_1"
+                maxVelocity 30
+              }
+            ]
+            endPoint Solid {
+              translation 3.320508945065457e-05 -0.00014658784364101558 -0.00023962050996739883
+              rotation -0.2096792387461805 -0.9550338286186905 0.2096306347668395 1.6180437269251406
+              children [
+                Solid {
+                  children [
+                    Shape {
+                      appearance PBRAppearance {
+                        baseColor 0 0 0
+                      }
+                      geometry DEF wheel_tire Cylinder {
+                        height 0.029
+                        radius 0.0375
+                      }
+                    }
+                  ]
+                }
+              ]
+              name "wheel_1_tire"
+              boundingObject USE wheel_tire
+              physics USE wheel_tire_physics
+            }
+          }
+        ]
+        name "wheel_1_hub"
+        boundingObject Cylinder {
+          height 0.02
+          radius 0.052
+        }
+        physics DEF wheel_hub_physics Physics {
+        }
+      }
+    }
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        position -2.777677579300616e-10
+        axis 0 0 -1
+        anchor -0.1172 0 0
+      }
+      device [
+        PositionSensor {
+          name "swerve_position_angle_2"
+        }
+        RotationalMotor {
+          name "swerve_motor_angle_2"
+        }
+      ]
+      endPoint Solid {
+        translation -0.1172 0 0.015699999999998243
+        rotation 3.4375640567589466e-08 -3.3237263034158193e-09 0.9999999999999994 1.5699999958904363
+        children [
+          HingeJoint {
+            jointParameters HingeJointParameters {
+              position -46680.64154183601
+              axis 1 0 0
+            }
+            device [
+              PositionSensor {
+                name "swerve_position_angular_distance_2"
+              }
+              RotationalMotor {
+                name "swerve_motor_angular_speed_2"
+                maxVelocity 30
+              }
+            ]
+            endPoint Solid {
+              translation 3.3205089450652185e-05 -4.556746411639103e-05 0.0002771815125767976
+              rotation 0.703220421327373 0.09914247394905673 -0.7040254319890813 3.338564239165894
+              children [
+                Solid {
+                  children [
+                    Shape {
+                      appearance PBRAppearance {
+                        baseColor 0 0 0
+                      }
+                      geometry DEF wheel_tire Cylinder {
+                        height 0.029
+                        radius 0.0375
+                      }
+                    }
+                  ]
+                }
+              ]
+              name "wheel_2_tire"
+              boundingObject USE wheel_tire
+              physics DEF wheel_tire_physics Physics {
+              }
+            }
+          }
+        ]
+        name "wheel_2_hub"
+        boundingObject Cylinder {
+          height 0.02
+          radius 0.052
+        }
+        physics DEF wheel_hub_physics Physics {
+        }
+      }
+    }
+    Solid {
+      children [
+        Pose {
+          rotation 0 0 1 -1.5707963267948966
+          children [
+            CadShape {
+              url [
+                "WildWillyR5_base.dae"
+              ]
+            }
+          ]
+        }
+      ]
+      name "robot_body"
+    }
+  ]
+  name IS name
+  boundingObject Group {
+    children [
+      Pose {
+        translation 0.0586 0.1015 0.017
+        children [
+          Cylinder {
+            height 0.034
+            radius 0.064
+          }
+        ]
+      }
+      Pose {
+        translation 0.0586 -0.1015 0.017
+        children [
+          Cylinder {
+            height 0.034
+            radius 0.064
+          }
+        ]
+      }
+      Pose {
+        translation -0.1172 0 0.017
+        children [
+          Cylinder {
+            height 0.034
+            radius 0.064
+          }
+        ]
+      }
+      Pose {
+        translation 0.05 0 0.017
+        children [
+          Box {
+            size 0.12 0.2 0.034
+          }
+        ]
+      }
+      Pose {
+        translation -0.0248095 0.0434106 0.017
+        rotation 0 0 1 2.09
+        children [
+          Box {
+            size 0.12 0.2 0.034
+          }
+        ]
+      }
+      Pose {
+        translation -0.0248095 -0.0434106 0.017
+        rotation 0 0 1 -2.09
+        children [
+          Box {
+            size 0.12 0.2 0.034
+          }
+        ]
+      }
+    ]
+  }
+  physics Physics {
+    density -1
+    mass 2
+  }
+  controller IS controller
+}
+}
