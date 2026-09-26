@@ -7,6 +7,7 @@ PROTO WildWillyR5 [
   field SFRotation rotation          0 0 1 0
   field SFString   name              "robotWildWillyR5"
   field SFString   controller        "wild_willy_r5"
+  field SFFloat    cameraOverscan    1.25  # Extra undistorted coverage; C# checks it at startup.
 ]
 {
 %<
@@ -31,14 +32,16 @@ PROTO WildWillyR5 [
   const height = calibration.ImageHeight;
   const k = calibration.CameraMatrix;
   const d = calibration.DistCoeffs;
-  requireCalibration(Number.isInteger(width) && width > 0 && Number.isInteger(height) && height > 0,
-    'ImageWidth and ImageHeight must be positive integers; recalibrate legacy files');
+  requireCalibration(Number.isInteger(width) && width >= 2 && width <= 4096 && Number.isInteger(height) && height >= 2 && height <= 4096,
+    'ImageWidth and ImageHeight must be integers between 2 and 4096; recalibrate legacy files');
   requireCalibration(Array.isArray(k) && k.length === 3 &&
     k.every(row => Array.isArray(row) && row.length === 3 && row.every(Number.isFinite)),
     'CameraMatrix must be a finite 3 by 3 matrix');
   requireCalibration(k[0][0] > 0 && k[1][1] > 0, 'focal lengths must be positive');
-  requireCalibration(Array.isArray(d) && d.length >= 4 && d.every(Number.isFinite),
-    'DistCoeffs must contain finite k1, k2, p1 and p2 values');
+  requireCalibration(k[0][1] === 0 && k[1][0] === 0 && k[2][0] === 0 && k[2][1] === 0 && k[2][2] === 1,
+    'CameraMatrix must have zero skew and bottom row [0,0,1]');
+  requireCalibration(Array.isArray(d) && (d.length === 4 || d.length === 5) && d.every(Number.isFinite),
+    'DistCoeffs must contain finite OpenCV k1, k2, p1, p2[, k3] values');
   requireCalibration(k[0][2] >= 0 && k[0][2] <= width && k[1][2] >= 0 && k[1][2] <= height,
     'principal point must be inside the image');
 
@@ -106,26 +109,27 @@ PROTO WildWillyR5 [
     console.warn('WildWillyR5: no CameraPoseInRobot; using the original RGB camera mount. Run Calc cam pos to calibrate it.');
   }
 
-  // Preserve the former C# export's approximation. Webots Lens operates in image
-  // UV coordinates, not OpenCV normalized camera coordinates, and has no k3 term.
-  // This is NOT an exact OpenCV distortion model or a camera-extrinsics conversion.
+  // Render a centred, square-pixel pinhole image. Hal.Webots applies the complete
+  // OpenCV distortion model, independent fx/fy and principal point afterwards.
+  // This modest overscan avoids duplicating the inverse lens solver in JavaScript.
+  const overscan = fields.cameraOverscan.value;
+  requireCalibration(Number.isFinite(overscan) && overscan >= 1 && overscan <= 4,
+    'cameraOverscan must be between 1 and 4');
+  const sourceWidth = 2 * Math.ceil(width * overscan / 2);
+  const sourceHeight = 2 * Math.ceil(height * overscan / 2);
+  requireCalibration(sourceWidth <= 8192 && sourceHeight <= 8192, 'source camera is too large');
   const cameraSettings = {
-    width: width,
-    height: height,
-    fieldOfView: 2 * Math.atan(width / (2 * k[0][0])),
-    center: [k[0][2] / width, k[1][2] / height],
-    radialCoefficients: [d[0], d[1]],
-    tangentialCoefficients: [d[2], d[3]]
+    width: sourceWidth,
+    height: sourceHeight,
+    fieldOfView: 2 * Math.atan(sourceWidth / (2 * Math.max(k[0][0], k[1][1])))
   };
-  if (d.some(value => value !== 0))
-    console.warn('WildWillyR5: OpenCV-to-Webots Lens mapping is approximate; k3 and higher coefficients are ignored.');
-  if (Math.abs(k[0][0] - k[1][1]) > 1e-6 || k[0][1] !== 0)
-    console.warn('WildWillyR5: Camera uses fx for fieldOfView; independent fy and skew are not represented.');
 >%
 Robot {
   translation IS translation
   rotation IS rotation
-  supervisor TRUE
+  supervisor FALSE
+  # Pass the exact calibration snapshot to the ordinary controller (no second file read).
+  customData %<= JSON.stringify(JSON.stringify(calibration)) >%
   children [
     # Internal positions and joint axes use X-forward, Y-left, Z-up (FLU).
     # Z=0 is the lowest wheel-cylinder contact plane in the saved initial pose.
@@ -189,17 +193,13 @@ Robot {
       translation %<= rgbPose.translation.join(' ') >%
       rotation %<= rgbPose.rotation.join(' ') >%
       children [
-        Camera {
+        DEF RGB_CAMERA Camera {
           name "camera_rgb"
           fieldOfView %<= cameraSettings.fieldOfView >%
           width %<= cameraSettings.width >%
           height %<= cameraSettings.height >%
           antiAliasing TRUE
-	  lens DEF camera_lens Lens {
-            center %<= cameraSettings.center.join(' ') >%
-            radialCoefficients %<= cameraSettings.radialCoefficients.join(' ') >%
-            tangentialCoefficients %<= cameraSettings.tangentialCoefficients.join(' ') >%
-          } 
+          # No Lens: distortion is applied exactly once, by Hal.Webots.
         }
       ]
     }

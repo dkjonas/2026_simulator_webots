@@ -26,16 +26,38 @@ The file is not watched continuously during simulation.
 
 ## Conversion and limitations
 
-The template computes horizontal field of view as `2 * atan(width / (2 * fx))`,
-the lens center as `(cx / width, cy / height)`, and copies `k1, k2, p1, p2` into
-the Lens fields. This preserves the previous C# text export's approximation.
+The robot uses `supervisor FALSE`. The template sets the RGB pose and an
+undistorted, centred pinhole camera with square pixels. Its focal length is
+`max(fx, fy)`; `cameraOverscan` (default 1.25 per axis) provides extra image
+coverage, giving a 960x540 source for the current 768x432 calibration.
+No Webots `Lens` is used.
 
-It is **not an exact OpenCV camera model**: Webots Lens uses normalized image UV
-coordinates, whereas OpenCV distortion uses normalized camera coordinates;
-Webots has no `k3` field and its Camera cannot independently represent `fx`, `fy`
-and skew. The distortion center is not a general off-axis projection parameter.
-The template warns about these approximations and ignores additional distortion
-coefficients without removing them from the JSON.
+The template passes the exact calibration JSON snapshot through ordinary
+`Robot.customData`. Hal.Webots reads this snapshot, builds an inverse mapping
+once and remaps each image before JPEG compression. This supports unequal
+fx/fy, an off-centre principal point and all five OpenCV Brown coefficients,
+including k3. Only four/five-coefficient, zero-skew calibrations are supported;
+unsupported models fail explicitly.
+
+The controller reads actual device width/height/FOV and rejects insufficient
+source coverage: increase `cameraOverscan` and reload if instructed.
+Overscan increases GPU rendering work; per-frame C# processing is a precomputed
+bilinear lookup with a reused output buffer.
+
+If the saved lens model folds, Hal.Webots now uses a smooth, linear continuation
+of the inverse mapping along each output ray, beginning before the fold. The
+join preserves position and first derivative. Extended pixels sample additional
+scene rays instead of becoming black or repeating border colours. Source
+coverage is checked; increase cameraOverscan only if the controller requests it.
+
+For the current c3 calibration, 7.89% of pixels use approximate extension,
+including the 4.69% formerly invalid region. Existing 960x540 source coverage
+is sufficient. Startup logs both counts.
+
+Neither calibration JSON nor transmitted intrinsics/distortion coefficients
+are changed. Outer-edge geometry is therefore approximate and does not exactly
+follow the transmitted Brown model. This is a rendering trade-off for full-frame
+vision input, not a validated physical recalibration.
 
 ## Calibrating the RGB position and orientation
 
@@ -88,14 +110,14 @@ Recalculating intrinsics clears the old pose; run **Calc cam pos** again afterwa
 The client also restores the saved pose on startup.
 
 This aligns the simulated camera's geometric pose with the estimated real pose;
-it does not correct the lens approximation, lighting, or errors in physical target
+it does not reproduce lighting or correct errors in physical target
 placement/calibration. The fixture image provides a regression check, not an
 independent measurement of the camera's true pose.
 
 References:
 
 - [Webots JavaScript templates and wbfile](https://github.com/cyberbotics/webots/blob/R2025a/docs/reference/javascript-procedural-proto.md)
-- [Webots Lens shader](https://github.com/cyberbotics/webots/blob/R2025a/resources/wren/shaders/lens_distortion.frag)
+- [Webots Camera](https://github.com/cyberbotics/webots/blob/R2025a/docs/reference/camera.md)
 
 ## Tests
 
