@@ -1,4 +1,6 @@
 #VRML_SIM R2025a utf8
+# template language: javascript
+# tags: nonDeterministic
 
 PROTO WildWillyR5 [
   field SFVec3f    translation       0 0 0
@@ -7,15 +9,131 @@ PROTO WildWillyR5 [
   field SFString   controller        "wild_willy_r5"
 ]
 {
+%<
+  // Resolve beside this PROTO, not beside the world or Webots' temporary script.
+  const protoPath = context.proto.replace(/\\/g, '/');
+  const calibrationPath = protoPath.substring(0, protoPath.lastIndexOf('/') + 1) + 'calib.json';
+  if (!wbfile.fileExists(calibrationPath))
+    throw new Error('WildWillyR5: missing camera calibration: ' + calibrationPath);
+
+  let calibration;
+  try {
+    calibration = JSON.parse(wbfile.readTextFile(calibrationPath).replace(/^\uFEFF/, ''));
+  } catch (error) {
+    throw new Error('WildWillyR5: invalid calibration JSON at ' + calibrationPath + ': ' + error.message);
+  }
+  function requireCalibration(condition, message) {
+    if (!condition)
+      throw new Error('WildWillyR5: ' + message + ' (' + calibrationPath + ')');
+  }
+  requireCalibration(calibration !== null && typeof calibration === 'object', 'calibration must be an object');
+  const width = calibration.ImageWidth;
+  const height = calibration.ImageHeight;
+  const k = calibration.CameraMatrix;
+  const d = calibration.DistCoeffs;
+  requireCalibration(Number.isInteger(width) && width > 0 && Number.isInteger(height) && height > 0,
+    'ImageWidth and ImageHeight must be positive integers; recalibrate legacy files');
+  requireCalibration(Array.isArray(k) && k.length === 3 &&
+    k.every(row => Array.isArray(row) && row.length === 3 && row.every(Number.isFinite)),
+    'CameraMatrix must be a finite 3 by 3 matrix');
+  requireCalibration(k[0][0] > 0 && k[1][1] > 0, 'focal lengths must be positive');
+  requireCalibration(Array.isArray(d) && d.length >= 4 && d.every(Number.isFinite),
+    'DistCoeffs must contain finite k1, k2, p1 and p2 values');
+  requireCalibration(k[0][2] >= 0 && k[0][2] <= width && k[1][2] >= 0 && k[1][2] <= height,
+    'principal point must be inside the image');
+
+  // Convert a column-vector rotation via a quaternion, including angles near pi.
+  function rotationToAxisAngle(r) {
+    let x, y, z, w;
+    const trace = r[0][0] + r[1][1] + r[2][2];
+    if (trace > 0) {
+      const s = 2 * Math.sqrt(1 + trace);
+      w = s / 4;
+      x = (r[2][1] - r[1][2]) / s;
+      y = (r[0][2] - r[2][0]) / s;
+      z = (r[1][0] - r[0][1]) / s;
+    } else {
+      const i = r[0][0] > r[1][1] ? (r[0][0] > r[2][2] ? 0 : 2) : (r[1][1] > r[2][2] ? 1 : 2);
+      const j = (i + 1) % 3;
+      const k = (i + 2) % 3;
+      const s = 2 * Math.sqrt(1 + r[i][i] - r[j][j] - r[k][k]);
+      const q = [0, 0, 0];
+      q[i] = s / 4;
+      q[j] = (r[j][i] + r[i][j]) / s;
+      q[k] = (r[k][i] + r[i][k]) / s;
+      [x, y, z] = q;
+      w = (r[k][j] - r[j][k]) / s;
+    }
+    if (w < 0) { x = -x; y = -y; z = -z; w = -w; }
+    const length = Math.hypot(x, y, z);
+    return length < 1e-12 ? [0, 0, 1, 0] : [x / length, y / length, z / length, 2 * Math.atan2(length, w)];
+  }
+
+  // Legacy fallback: compose the old mount's Z rotation and RGB camera's Y tilt.
+  const mountYaw = -0.0007963267948966;
+  const tilt = 0.2268;
+  const cz = Math.cos(mountYaw), sz = Math.sin(mountYaw);
+  const cy = Math.cos(tilt), sy = Math.sin(tilt);
+  const rgbPose = {
+    translation: [0.101, 0, 0.11662819049],
+    rotation: rotationToAxisAngle([[cz * cy, -sz, cz * sy], [sz * cy, cz, sz * sy], [-sy, 0, cy]])
+  };
+  const pose = calibration.CameraPoseInRobot;
+  if (pose !== undefined && pose !== null) {
+    requireCalibration(typeof pose === 'object', 'CameraPoseInRobot must be an object');
+    const t = pose.TranslationMillimeters;
+    const r = pose.RotationMatrix;
+    requireCalibration(Array.isArray(t) && t.length === 3 && t.every(Number.isFinite),
+      'CameraPoseInRobot.TranslationMillimeters must contain three finite coordinates');
+    requireCalibration(Array.isArray(r) && r.length === 3 &&
+      r.every(row => Array.isArray(row) && row.length === 3 && row.every(Number.isFinite)),
+      'CameraPoseInRobot.RotationMatrix must be a finite 3 by 3 matrix');
+    for (let i = 0; i < 3; ++i)
+      for (let j = 0; j < 3; ++j)
+        requireCalibration(Math.abs(r[i].reduce((sum, value, k) => sum + value * r[j][k], 0) - (i === j ? 1 : 0)) < 1e-4,
+          'CameraPoseInRobot.RotationMatrix must be orthonormal');
+    const determinant = r[0][0] * (r[1][1] * r[2][2] - r[1][2] * r[2][1])
+      - r[0][1] * (r[1][0] * r[2][2] - r[1][2] * r[2][0])
+      + r[0][2] * (r[1][0] * r[2][1] - r[1][1] * r[2][0]);
+    requireCalibration(Math.abs(determinant - 1) < 1e-4,
+      'CameraPoseInRobot.RotationMatrix must have determinant +1');
+    // Calibration already uses the floor-level robot origin: do not add the chassis offset.
+    rgbPose.translation = t.map(value => value / 1000);
+    // Optical axes: X right, Y down, Z forward. Webots Camera: X forward, Y left, Z up.
+    // R_robot_webots columns = [optical forward, -optical right, -optical down].
+    rgbPose.rotation = rotationToAxisAngle(r.map(row => [row[2], -row[0], -row[1]]));
+  } else {
+    console.warn('WildWillyR5: no CameraPoseInRobot; using the original RGB camera mount. Run Calc cam pos to calibrate it.');
+  }
+
+  // Preserve the former C# export's approximation. Webots Lens operates in image
+  // UV coordinates, not OpenCV normalized camera coordinates, and has no k3 term.
+  // This is NOT an exact OpenCV distortion model or a camera-extrinsics conversion.
+  const cameraSettings = {
+    width: width,
+    height: height,
+    fieldOfView: 2 * Math.atan(width / (2 * k[0][0])),
+    center: [k[0][2] / width, k[1][2] / height],
+    radialCoefficients: [d[0], d[1]],
+    tangentialCoefficients: [d[2], d[3]]
+  };
+  if (d.some(value => value !== 0))
+    console.warn('WildWillyR5: OpenCV-to-Webots Lens mapping is approximate; k3 and higher coefficients are ignored.');
+  if (Math.abs(k[0][0] - k[1][1]) > 1e-6 || k[0][1] !== 0)
+    console.warn('WildWillyR5: Camera uses fx for fieldOfView; independent fy and skew are not represented.');
+>%
 Robot {
   translation IS translation
   rotation IS rotation
   supervisor TRUE
   children [
     # Internal positions and joint axes use X-forward, Y-left, Z-up (FLU).
+    # Z=0 is the lowest wheel-cylinder contact plane in the saved initial pose.
+    # Root-relative chassis geometry is shifted up 0.02262819049 m from the old origin.
+    # Nested coordinates stay local; no whole-robot wrapper transform is required.
     # The imported DAE meshes retain their original coordinates and are rotated locally.
     Pose {
-      translation 0.085 -0.033 0.043
+      translation 0.085 -0.033 0.06562819049
       children [
         HingeJoint {
           jointParameters HingeJointParameters {
@@ -61,28 +179,35 @@ Robot {
       ]
     }
     InertialUnit {
+      translation 0 0 0.02262819049
       # Preserve the IMU's original axis readings for the controller.
       rotation 0 0 1 -1.5707963267948966
       name "inertialunit_imu"
     }
-    Pose {
-      translation 0.101 0 0.094
-      # Original mount used 1.57 rad, slightly less than a quarter-turn.
-      rotation 0 0 1 -0.0007963267948966
+    DEF RGB_CAMERA_FRAME Pose {
+      # Absolute RGB optical-centre pose relative to Robot; independent of the ToF.
+      translation %<= rgbPose.translation.join(' ') >%
+      rotation %<= rgbPose.rotation.join(' ') >%
       children [
         Camera {
-          rotation 0 1 0 0.2268
           name "camera_rgb"
-          fieldOfView 1.7336
-          width 768
-          height 432
+          fieldOfView %<= cameraSettings.fieldOfView >%
+          width %<= cameraSettings.width >%
+          height %<= cameraSettings.height >%
           antiAliasing TRUE
 	  lens DEF camera_lens Lens {
-            center  0.4942 0.4804
-            radialCoefficients -0.075645 0.153474
-            tangentialCoefficients 0.000742 -0.00054606
+            center %<= cameraSettings.center.join(' ') >%
+            radialCoefficients %<= cameraSettings.radialCoefficients.join(' ') >%
+            tangentialCoefficients %<= cameraSettings.tangentialCoefficients.join(' ') >%
           } 
         }
+      ]
+    }
+    DEF TOF_CAMERA_FRAME Pose {
+      # Preserve the original ToF mount, including its local -40 mm Z offset.
+      translation 0.101 0 0.11662819049
+      rotation 0 0 1 -0.0007963267948966
+      children [
         RangeFinder {
           translation 0 0 -0.04
           name "rangefinder_tof"
@@ -99,7 +224,7 @@ Robot {
       jointParameters HingeJointParameters {
         position -1.739223132186229e-09
         axis 0 0 -1
-        anchor 0.0586 0.1015 0
+        anchor 0.0586 0.1015 0.02262819049
       }
       device [
         PositionSensor {
@@ -110,7 +235,7 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation 0.0586 0.1015 0.014999999999999507
+        translation 0.0586 0.1015 0.03762819048999951
         rotation -1.0018367559038278e-08 -2.583278973793971e-08 0.9999999999999998 1.5700000094377657
         children [
           HingeJoint {
@@ -165,7 +290,7 @@ Robot {
       jointParameters HingeJointParameters {
         position -1.668626528086377e-10
         axis 0 0 -1
-        anchor 0.0586 -0.1015 0
+        anchor 0.0586 -0.1015 0.02262819049
       }
       device [
         PositionSensor {
@@ -176,7 +301,7 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation 0.0586 -0.1015 0.01569999999999787
+        translation 0.0586 -0.1015 0.03832819048999787
         rotation -8.684351847421306e-10 1.9692735636565583e-08 0.9999999999999999 1.5700000062986448
         children [
           HingeJoint {
@@ -230,7 +355,7 @@ Robot {
       jointParameters HingeJointParameters {
         position -2.777677579300616e-10
         axis 0 0 -1
-        anchor -0.1172 0 0
+        anchor -0.1172 0 0.02262819049
       }
       device [
         PositionSensor {
@@ -241,7 +366,7 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation -0.1172 0 0.015699999999998243
+        translation -0.1172 0 0.03832819048999824
         rotation 3.4375640567589466e-08 -3.3237263034158193e-09 0.9999999999999994 1.5699999958904363
         children [
           HingeJoint {
@@ -293,6 +418,7 @@ Robot {
       }
     }
     Solid {
+      translation 0 0 0.02262819049
       children [
         Pose {
           rotation 0 0 1 -1.5707963267948966
@@ -312,7 +438,7 @@ Robot {
   boundingObject Group {
     children [
       Pose {
-        translation 0.0586 0.1015 0.017
+        translation 0.0586 0.1015 0.03962819049
         children [
           Cylinder {
             height 0.034
@@ -321,7 +447,7 @@ Robot {
         ]
       }
       Pose {
-        translation 0.0586 -0.1015 0.017
+        translation 0.0586 -0.1015 0.03962819049
         children [
           Cylinder {
             height 0.034
@@ -330,7 +456,7 @@ Robot {
         ]
       }
       Pose {
-        translation -0.1172 0 0.017
+        translation -0.1172 0 0.03962819049
         children [
           Cylinder {
             height 0.034
@@ -339,7 +465,7 @@ Robot {
         ]
       }
       Pose {
-        translation 0.05 0 0.017
+        translation 0.05 0 0.03962819049
         children [
           Box {
             size 0.12 0.2 0.034
@@ -347,7 +473,7 @@ Robot {
         ]
       }
       Pose {
-        translation -0.0248095 0.0434106 0.017
+        translation -0.0248095 0.0434106 0.03962819049
         rotation 0 0 1 2.09
         children [
           Box {
@@ -356,7 +482,7 @@ Robot {
         ]
       }
       Pose {
-        translation -0.0248095 -0.0434106 0.017
+        translation -0.0248095 -0.0434106 0.03962819049
         rotation 0 0 1 -2.09
         children [
           Box {
