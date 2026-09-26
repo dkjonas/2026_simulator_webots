@@ -657,7 +657,13 @@ DEF dynamic_obstacles Group {
     }
   ]
 }
-WildWillyR5 {
+Robot {
+  translation 0 0 -1
+  name "wild_willy_supervisor"
+  controller "wild_willy_supervisor"
+  supervisor TRUE
+}
+DEF WILD_WILLY_R5 WildWillyR5 {
   translation 0.19172304900903403 -2.4977852293823215 0
   rotation 0 0 1 -1.5529639063567573
   controller "wild_willy_r5"
