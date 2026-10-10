@@ -7,7 +7,7 @@ EXTERNPROTO "../protos/Podium.proto"
 EXTERNPROTO "../protos/Goal.proto"
 EXTERNPROTO "../protos/Button.proto"
 EXTERNPROTO "../protos/Seesaw.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/robots/parallax/boebot/protos/BoeBot.proto"
+EXTERNPROTO "../protos/robots/WildWillyR5/WildWillyR5.proto"
 
 WorldInfo {
 }
@@ -657,70 +657,14 @@ DEF dynamic_obstacles Group {
     }
   ]
 }
-BoeBot {
-  hidden linearVelocity_0 -1.5143811705195927e-15 3.2497196288055675e-15 -1.0609172770424e-15
-  hidden angularVelocity_0 -5.983358115116937e-14 -1.7374311724882566e-14 1.5913912249406568e-14
-  hidden translation_17 0.025 -0.046 -0.0052
-  hidden rotation_17 0 -0.9999999999999999 0 3.121803616585877
-  hidden linearVelocity_17 1.2157997931770718e-14 -6.624499808072419e-13 -1.3879226189065745e-15
-  hidden angularVelocity_17 2.2239096386582552e-13 -1.3359666173548234e-14 1.4326785308217913e-14
-  hidden translation_18 0.025 0.04688609999999997 -0.0052
-  hidden rotation_18 0 1 0 1.8883479940111587
-  hidden linearVelocity_18 -1.4594542110621842e-14 6.601184244477048e-13 1.1364893364844847e-15
-  hidden angularVelocity_18 -3.2656483113448376e-14 -6.923029240738289e-14 1.3911374880235932e-14
-  translation 0.19172304900903403 -2.4977852293823215 0.038391746974517985
-  rotation 0.010636447664534613 0.00011886723736944279 0.9999434243254263 -3.123760233151654
-  controller "boebot_controller"
-  extensionSlot [
-    Group {
-      children [
-        Pose {
-          translation 0.06 0 -0.018
-          rotation -0.7071067808071544 3.27579898454983e-05 0.7071067808071544 -3.1415253071795863
-          children [
-            DistanceSensor {
-              translation 0 -0.035 0
-              name "sensor0"
-              type "infra-red"
-            }
-            DistanceSensor {
-              translation 0 -0.025 0
-              name "sensor1"
-              type "infra-red"
-            }
-            DistanceSensor {
-              translation 0 -0.015 0
-              name "sensor2"
-              type "infra-red"
-            }
-            DistanceSensor {
-              translation 0 -0.005 0
-              name "sensor3"
-              type "infra-red"
-            }
-            DistanceSensor {
-              translation 0 0.005 0
-              name "sensor4"
-              type "infra-red"
-            }
-            DistanceSensor {
-              translation 0 0.015 0
-              name "sensor5"
-              type "infra-red"
-            }
-            DistanceSensor {
-              translation 0 0.025 0
-              name "sensor6"
-              type "infra-red"
-            }
-            DistanceSensor {
-              translation 0 0.035 0
-              name "sensor7"
-              type "infra-red"
-            }
-          ]
-        }
-      ]
-    }
-  ]
+Robot {
+  translation 0 0 -1
+  name "wild_willy_supervisor"
+  controller "wild_willy_supervisor"
+  supervisor TRUE
+}
+DEF WILD_WILLY_R5 WildWillyR5 {
+  translation 0.19172304900903403 -2.4977852293823215 0
+  rotation 0 0 1 -1.5529639063567573
+  controller "wild_willy_r5"
 }

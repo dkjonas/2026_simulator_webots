@@ -8,15 +8,15 @@ This repository contains a Webots simulation of the **RoboCup.dk 2026** competit
 
 1. Download and install Webots from https://cyberbotics.com/.  
    The simulation was developed using **Webots R2025a**, but newer versions should also work.
-2. Clone this repo with `git clone https://github.com/robocup-dk/2026_simulator_webots.git` or download the zip from above.
-3. Open the file `worlds/robocup.dk_2026.wbt` in Webots.
-4. Start the simulation by pressing the **Play** button.
-5. The simulation includes a simple robot that can be controlled using the keyboard arrow keys. Speed can be set with keys **`1`** to **`9`**.
-   It also has a basic line-following algorithm that can be enabled by pressing the **`L`** key. You may have to click on the 3d view before the keyboard controls are working.
+2. Clone this repo with `git clone https://github.com/dkjonas/2026_simulator_webots.git` or download the zip from above.
+3. Build `WildWilly.Hal.Webots` and `WildWilly.Webots.Supervisor` from the WildWillyCore solution. Their post-build steps copy the controller executables and dependencies to `controllers/wild_willy_r5/` and `controllers/wild_willy_supervisor/`.
+4. Open `worlds/robocup.dk_2026.wbt` in Webots and press **Play**. The controller requires the .NET 10 runtime.
 
-Note that you need to have Python installed to run the simulation.
+Python must also be installed to run the track's obstacle controller.
 
-The robot is controlled by the `controllers/boebot_controller/boebot_controller.py` Python script. You can use this as a starting point for your own robot, or simply to learn how to use Webots. A simple improvement is to make the robot able to follow the black line.
+The world uses the `WildWillyR5` robot and its `wild_willy_r5` C# controller. The PROTO's robot frame is X forward, Y left, Z up; its original Y-forward CAD and devices are rotated inside the PROTO, without modifying the DAE files. The old `controllers/boebot_controller/` example remains in the repository but is not selected by the world.
+
+The separate `wild_willy_supervisor` C# controller listens on loopback port 10021. `WildWilly.Client` uses it to read and set the robot pose; named poses are stored in the WildWillyCore repository at `Configuration/Simulation/robot-poses.json` so they can be tracked in Git.
 
 ## Track Rules and Setup
 
